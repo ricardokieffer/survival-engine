@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Survival Engine — Demo interactiva</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0c1210;
+    --panel: #131b17;
+    --panel-2: #182119;
+    --line: #23302a;
+    --text: #e9ece7;
+    --text-dim: #9caaa1;
+    --ember: #e8823c;
+    --ember-dim: #c9722f;
+    --energy: #4fb3a6;
+    --danger: #d24f3f;
+    --ok: #6fae5c;
+    --font-ui: 'Manrope', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+  }
+  :root:not([data-theme="light"]) { color-scheme: dark; }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f3f1ea;
+      --panel: #ffffff;
+      --panel-2: #ece8dd;
+      --line: #ddd6c4;
+      --text: #1c1f1a;
+      --text-dim: #5c6259;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f3f1ea;
+    --panel: #ffffff;
+    --panel-2: #ece8dd;
+    --line: #ddd6c4;
+    --text: #1c1f1a;
+    --text-dim: #5c6259;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-ui);
+    min-height: 100vh;
+    padding: 24px 16px 60px;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; }
+
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 22px;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 16px;
+  }
+  header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  header h1 span { color: var(--ember); }
+  header p { margin: 4px 0 0; color: var(--text-dim); font-size: 0.9rem; }
+  .clock {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    text-align: right;
+  }
+  .clock b { color: var(--text); font-size: 1.05rem; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 18px;
+  }
+  @media (max-width: 760px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 18px;
+  }
+  .panel h2 {
+    margin: 0 0 14px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-dim);
+    letter-spacing: 0.03em;
+  }
+
+  .stat { margin-bottom: 14px; }
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    margin-bottom: 5px;
+  }
+  .stat-row .label { color: var(--text-dim); }
+  .bar-track {
+    height: 9px;
+    background: var(--panel-2);
+    border-radius: 5px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+  }
+  .bar-fill { height: 100%; border-radius: 5px; transition: width .35s ease, background .35s ease; }
+  .bar-fill.v { background: linear-gradient(90deg, var(--danger), var(--ember)); }
+  .bar-fill.e { background: var(--energy); }
+  .bar-fill.xp { background: var(--ember); }
+
+  .resources {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .res-chip {
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 8px 10px;
+    text-align: center;
+  }
+  .res-chip .n { font-family: var(--font-mono); font-weight: 700; font-size: 1.05rem; }
+  .res-chip .l { font-size: 0.72rem; color: var(--text-dim); }
+
+  .inv-title { font-size: 0.78rem; color: var(--text-dim); margin: 16px 0 8px; font-weight: 700; letter-spacing: 0.03em; }
+  .inv-chips { display: flex; flex-wrap: wrap; gap: 6px; min-height: 30px; }
+  .inv-chip {
+    background: var(--ember);
+    color: #1a1000;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 4px 9px;
+    border-radius: 20px;
+  }
+  .inv-empty { color: var(--text-dim); font-size: 0.8rem; font-style: italic; }
+
+  .actions-panel { margin-top: 18px; }
+  .action-group { margin-bottom: 14px; }
+  .action-group .gt { font-size: 0.72rem; color: var(--text-dim); text-transform: none; margin-bottom: 7px; letter-spacing: 0.03em; }
+  .btn-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  button.act {
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    color: var(--text);
+    font-family: var(--font-ui);
+    font-size: 0.83rem;
+    font-weight: 600;
+    padding: 9px 13px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: border-color .15s, transform .1s;
+  }
+  button.act:hover { border-color: var(--ember-dim); }
+  button.act:active { transform: scale(0.97); }
+  button.act:disabled { opacity: 0.35; cursor: not-allowed; }
+  button.act.primary { background: var(--ember); color: #1a1000; border-color: var(--ember); }
+  button.act.danger { background: transparent; color: var(--danger); border-color: var(--danger); }
+
+  .combat-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  input[type="range"] { accent-color: var(--ember); width: 130px; }
+  .kval { font-family: var(--font-mono); font-weight: 700; min-width: 20px; }
+
+  .log {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    line-height: 1.55;
+    height: 340px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  .log::-webkit-scrollbar { width: 6px; }
+  .log::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+  .log-entry { padding: 8px 0; border-bottom: 1px dashed var(--line); }
+  .log-entry:first-child { padding-top: 0; }
+  .log-time { color: var(--text-dim); }
+  .log-rule { color: var(--ember); }
+  .log-ok { color: var(--ok); }
+  .log-bad { color: var(--danger); }
+
+  .banner {
+    display: none;
+    background: var(--danger);
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.85rem;
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    align-items: center;
+    gap: 8px;
+  }
+  .banner.show { display: flex; }
+  .banner.warn { background: #a8763a; }
+
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 8, 6, 0.88);
+    z-index: 50;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 14px;
+    text-align: center;
+    padding: 20px;
+  }
+  .overlay.show { display: flex; }
+  .overlay h2 { font-size: 2.2rem; margin: 0; color: var(--danger); letter-spacing: -0.02em; }
+  .overlay p { color: #cfd6d0; max-width: 420px; margin: 0; }
+
+  footer {
+    margin-top: 22px;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 0.78rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <h1>Survival <span>Engine</span></h1>
+      <p>Demo jugable del modelo matemático-lógico del proyecto ABP</p>
+    </div>
+    <div class="clock">
+      Nivel <b id="hud-n">1</b> · Tiempo <b id="hud-t">0</b> min
+    </div>
+  </header>
+
+  <div id="banner-alerta" class="banner warn">⚠ Alerta de cansancio extremo — energía crítica y sin comida</div>
+  <div id="banner-info" class="banner"></div>
+
+  <div class="grid">
+
+    <!-- PANEL JUGADOR -->
+    <div class="panel">
+      <h2>ESTADO DEL JUGADOR</h2>
+
+      <div class="stat">
+        <div class="stat-row"><span class="label">Vida (v ∈ [0,100])</span><span id="v-val">100</span></div>
+        <div class="bar-track"><div class="bar-fill v" id="v-bar" style="width:100%"></div></div>
+      </div>
+
+      <div class="stat">
+        <div class="stat-row"><span class="label">Energía (e ∈ [0,100])</span><span id="e-val">100</span></div>
+        <div class="bar-track"><div class="bar-fill e" id="e-bar" style="width:100%"></div></div>
+      </div>
+
+      <div class="stat">
+        <div class="stat-row"><span class="label">XP para nivel <span id="n-next">2</span></span><span id="xp-val">0 / 100</span></div>
+        <div class="bar-track"><div class="bar-fill xp" id="xp-bar" style="width:0%"></div></div>
+      </div>
+
+      <div class="resources">
+        <div class="res-chip"><div class="n" id="m-val">0</div><div class="l">Madera</div></div>
+        <div class="res-chip"><div class="n" id="p-val">0</div><div class="l">Piedra</div></div>
+        <div class="res-chip"><div class="n" id="c-val">0</div><div class="l">Comida</div></div>
+      </div>
+
+      <div class="inv-title">INVENTARIO (x ⊆ U) — <span id="x-count">0</span>/30 slots</div>
+      <div class="inv-chips" id="inv-chips"><span class="inv-empty">vacío</span></div>
+
+      <div class="actions-panel">
+        <div class="action-group">
+          <div class="gt">Explorar / recolectar</div>
+          <div class="btn-row">
+            <button class="act" onclick="recolectar('madera')">+ Madera</button>
+            <button class="act" onclick="recolectar('piedra')">+ Piedra</button>
+            <button class="act" onclick="recolectar('comida')">+ Comida</button>
+          </div>
+        </div>
+
+        <div class="action-group">
+          <div class="gt">Gestión de energía</div>
+          <div class="btn-row">
+            <button class="act" onclick="correr()">Correr 5 min (E = 5·t)</button>
+            <button class="act" onclick="descansar()">Descansar (+15 e)</button>
+            <button class="act" onclick="comer()">Comer comida</button>
+          </div>
+        </div>
+
+        <div class="action-group">
+          <div class="gt">Crafteo — C_antorcha(m,p) = 2m + 1p</div>
+          <div class="btn-row">
+            <button class="act primary" onclick="craftearAntorcha()">Craftear antorcha</button>
+          </div>
+        </div>
+
+        <div class="action-group">
+          <div class="gt">Zona peligrosa — regla: p ∧ q → Z</div>
+          <div class="btn-row">
+            <button class="act" onclick="intentarAcceso()">Intentar acceder a la Cueva</button>
+          </div>
+        </div>
+
+        <div class="action-group">
+          <div class="gt">Combate — D_k = 10·2^(k-1)</div>
+          <div class="combat-row">
+            <input type="range" min="1" max="10" value="3" id="k-slider" oninput="document.getElementById('kval').textContent=this.value">
+            <span class="kval" id="kval">3</span>
+            <button class="act danger" onclick="combatir()">Enfrentar enemigo</button>
+          </div>
+        </div>
+
+        <div class="action-group">
+          <button class="act" onclick="reiniciar()">↺ Reiniciar simulación</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANEL LOG / ANALISTA -->
+    <div class="panel">
+      <h2>CONSOLA DEL ANALISTA FUNCIONAL — registro de reglas evaluadas</h2>
+      <div class="log" id="log"></div>
+    </div>
+
+  </div>
+
+  <footer>Motor conceptual basado en el proyecto ABP "Survival Engine" — Elementos de Matemática y Lógica, ISPC.</footer>
+</div>
+
+<div class="overlay" id="overlay">
+  <h2>DERROTA</h2>
+  <p id="overlay-reason">El sistema entró en estado de derrota.</p>
+  <button class="act primary" onclick="reiniciar()">Reiniciar</button>
+</div>
+
+<script>
+// ============================================================
+// MODELO — funciones matemáticas explícitas (idénticas al doc)
+// ============================================================
+const clamp = (val, min, max) => Math.min(max, Math.max(min, val));
+const energiaCorrer = (t) => 5 * t;                         // E_correr(t) = 5t
+const xpRequerida   = (n) => 100 + (n - 1) * 50;            // Progresión aritmética
+const danoEnemigo   = (k) => 10 * Math.pow(2, k - 1);       // Progresión geométrica
+
+// Reglas de negocio (lógica proposicional)
+const reglaAccesoZona   = (p, q)    => p && q;                 // p ∧ q → Z
+const reglaAlerta       = (r, s)    => r && !s;                // r ∧ ¬s → A
+const reglaDerrota      = (u, w, s) => u || (w && !s);         // u ∨ (w ∧ ¬s) → D
+
+// Conjunto universo
+const UNIVERSO = ["madera","piedra","comida","metal","antorcha","espada","pocion","mineral","hacha","pico"];
+
+// ============================================================
+// ESTADO
+// ============================================================
+let state;
+function estadoInicial() {
+  return {
+    v: 100, e: 100, n: 1, xp: 0, t: 0,
+    m: 0, p: 0, c: 0,
+    inventario: {}, // ítems craftables: {antorcha: 1, ...}
+    derrotado: false
+  };
+}
+state = estadoInicial();
+
+// ============================================================
+// UTILIDADES
+// ============================================================
+function log(html, cls) {
+  const el = document.getElementById('log');
+  const time = state.t.toFixed(0).padStart(3,'0');
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  entry.innerHTML = `<span class="log-time">[t=${time}min]</span> ${html}`;
+  el.prepend(entry);
+}
+
+function inventarioSlots() {
+  // x = cantidad discreta de "tipos" de recurso/objeto con cantidad > 0
+  let count = 0;
+  if (state.m > 0) count++;
+  if (state.p > 0) count++;
+  if (state.c > 0) count++;
+  for (const k in state.inventario) if (state.inventario[k] > 0) count++;
+  return count;
+}
+
+function tieneComida() { return state.c > 0; }
+function tieneAntorcha() { return (state.inventario['antorcha'] || 0) > 0; }
+
+function evaluarAlerta() {
+  const r = state.e < 20;
+  const s = tieneComida();
+  const activa = reglaAlerta(r, s);
+  document.getElementById('banner-alerta').classList.toggle('show', activa && !state.derrotado);
+  return activa;
+}
+
+function evaluarDerrota() {
+  const u = state.v <= 0;
+  const w = state.e <= 0;
+  const s = tieneComida();
+  const d = reglaDerrota(u, w, s);
+  if (d && !state.derrotado) {
+    state.derrotado = true;
+    const razon = u ? 'Vida llegó a 0 (u = V).' : 'Energía llegó a 0 sin comida disponible (w ∧ ¬s = V).';
+    document.getElementById('overlay-reason').textContent = razon;
+    document.getElementById('overlay').classList.add('show');
+    log(`<span class="log-rule">D: u ∨ (w ∧ ¬s) → D</span> — u=${u?'V':'F'}, w=${w?'V':'F'}, ¬s=${!s?'V':'F'} ⇒ <span class="log-bad">D = V → DERROTA</span>`);
+  }
+  return d;
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+function render() {
+  document.getElementById('hud-n').textContent = state.n;
+  document.getElementById('hud-t').textContent = state.t.toFixed(0);
+
+  document.getElementById('v-val').textContent = state.v.toFixed(1);
+  document.getElementById('v-bar').style.width = state.v + '%';
+  document.getElementById('e-val').textContent = state.e.toFixed(1);
+  document.getElementById('e-bar').style.width = state.e + '%';
+
+  const need = xpRequerida(state.n);
+  document.getElementById('n-next').textContent = state.n + 1;
+  document.getElementById('xp-val').textContent = `${state.xp} / ${need}`;
+  document.getElementById('xp-bar').style.width = clamp((state.xp/need)*100, 0, 100) + '%';
+
+  document.getElementById('m-val').textContent = state.m;
+  document.getElementById('p-val').textContent = state.p;
+  document.getElementById('c-val').textContent = state.c;
+
+  document.getElementById('x-count').textContent = inventarioSlots();
+
+  const chipsEl = document.getElementById('inv-chips');
+  const items = Object.keys(state.inventario).filter(k => state.inventario[k] > 0);
+  if (items.length === 0) {
+    chipsEl.innerHTML = '<span class="inv-empty">sin ítems craftados</span>';
+  } else {
+    chipsEl.innerHTML = items.map(k => `<span class="inv-chip">${k} ×${state.inventario[k]}</span>`).join('');
+  }
+
+  evaluarAlerta();
+
+  // deshabilitar acciones si hay derrota
+  document.querySelectorAll('button.act').forEach(b => {
+    if (b.getAttribute('onclick') === 'reiniciar()') return;
+    b.disabled = state.derrotado;
+  });
+}
+
+// ============================================================
+// ACCIONES
+// ============================================================
+function recolectar(tipo) {
+  if (state.derrotado) return;
+  if (tipo === 'madera') state.m = clamp(state.m + 3, 0, 99);
+  if (tipo === 'piedra') state.p = clamp(state.p + 3, 0, 99);
+  if (tipo === 'comida') state.c = clamp(state.c + 1, 0, 99);
+  log(`Recolectaste recursos: <b>+${tipo === 'comida' ? 1 : 3} ${tipo}</b>.`);
+  render();
+}
+
+function correr() {
+  if (state.derrotado) return;
+  const gasto = energiaCorrer(5); // t = 5 minutos
+  state.e = clamp(state.e - gasto, 0, 100);
+  state.t += 5;
+  log(`Corriste 5 min → <span class="log-rule">E_correr(5) = 5·5 = ${gasto}</span> energía consumida.`);
+  evaluarDerrota();
+  render();
+}
+
+function descansar() {
+  if (state.derrotado) return;
+  state.e = clamp(state.e + 15, 0, 100);
+  state.t += 2;
+  log(`Descansaste 2 min → energía regenerada <b>+15</b>.`);
+  render();
+}
+
+function comer() {
+  if (state.derrotado) return;
+  if (state.c <= 0) { log(`Intentaste comer, pero <span class="log-bad">no tenés comida (s = F)</span>.`); render(); return; }
+  state.c -= 1;
+  state.e = clamp(state.e + 25, 0, 100);
+  log(`Comiste una unidad de comida → energía <b>+25</b>. Ahora s (comida ∈ I) = ${tieneComida() ? 'V':'F'}.`);
+  render();
+}
+
+function craftearAntorcha() {
+  if (state.derrotado) return;
+  const puede = state.m >= 2 && state.p >= 1;
+  if (!puede) {
+    log(`Crafteo de antorcha <span class="log-bad">rechazado</span>: se requieren 2 madera + 1 piedra (tenés ${state.m}m, ${state.p}p).`);
+    render();
+    return;
+  }
+  state.m -= 2;
+  state.p -= 1;
+  state.inventario['antorcha'] = (state.inventario['antorcha'] || 0) + 1;
+  log(`<span class="log-rule">C_antorcha(m,p) = 2m + 1p</span> satisfecha → crafteaste <b>1 antorcha</b>. Inventario descontado: -2 madera, -1 piedra.`);
+  render();
+}
+
+function intentarAcceso() {
+  if (state.derrotado) return;
+  const p = state.e >= 50;
+  const q = tieneAntorcha();
+  const z = reglaAccesoZona(p, q);
+  log(`<span class="log-rule">Regla Z: p ∧ q → Z</span> — p (e≥50)=${p?'V':'F'}, q (antorcha∈I)=${q?'V':'F'} ⇒ Z = ${z ? '<span class="log-ok">V (Acceso concedido)</span>' : '<span class="log-bad">F (Acceso denegado)</span>'}`);
+  render();
+}
+
+function combatir() {
+  if (state.derrotado) return;
+  const k = parseInt(document.getElementById('k-slider').value, 10);
+  const dano = danoEnemigo(k);
+  state.v = clamp(state.v - dano, 0, 100);
+  state.t += 3;
+  log(`Combate vs enemigo nivel k=${k} → <span class="log-rule">D_k = 10·2^(${k}-1) = ${dano}</span> puntos de daño recibido.`);
+
+  if (evaluarDerrota()) { render(); return; }
+
+  const xpGanada = 30 * k;
+  state.xp += xpGanada;
+  log(`Enemigo derrotado → <b>+${xpGanada} XP</b>.`);
+
+  let subioNivel = false;
+  while (state.xp >= xpRequerida(state.n)) {
+    state.xp -= xpRequerida(state.n);
+    state.n += 1;
+    subioNivel = true;
+  }
+  if (subioNivel) {
+    log(`<span class="log-ok">¡Subiste a nivel ${state.n}!</span> Próximo requerimiento: a_${state.n} = 100 + (${state.n}-1)·50 = ${xpRequerida(state.n)} XP.`);
+  }
+  render();
+}
+
+function reiniciar() {
+  state = estadoInicial();
+  document.getElementById('overlay').classList.remove('show');
+  document.getElementById('banner-alerta').classList.remove('show');
+  document.getElementById('log').innerHTML = '';
+  log(`Simulación reiniciada. Estado inicial: v=100, e=100, n=1, t=0.`);
+  render();
+}
+
+// ============================================================
+// INIT
+// ============================================================
+log(`Motor iniciado. Variables de estado en dominio: v,e ∈ [0,100]⊂R · m,p,c ∈ [0,99]∩N0 · n ∈ [1,50]∩N.`);
+render();
+</script>
+</body>
+</html>
